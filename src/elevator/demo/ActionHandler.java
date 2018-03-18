@@ -3,6 +3,7 @@ package elevator.demo;
 import java.awt.event.ActionEvent;
 import java.rmi.RemoteException;
 import java.util.Arrays;
+import java.util.Random;
 
 public class ActionHandler implements Runnable {
     AnimationDemo master;
@@ -11,20 +12,23 @@ public class ActionHandler implements Runnable {
         this.e = e;
         this.master = m;
     }
-    private int freeze(int d){
-        double[] dis = new double[master.e.length];
+    private int freeze(int d, int dir){
         int min = 100;
-        int ret = 2;
-        for(int i = 1; i <= master.e.length; i++){
+        int ret = new Random().nextInt(master.e.length-1)+1;
+        for(int i = 1; i < master.e.length; i++){
             try {
-                if(master.eC[i].upwards) {
-                    if(d == 1)
-                    if (Math.abs(master.e[i].whereIs() - d) < min) {
-                        min = Math.abs((int) master.e[i].whereIs() - d);
-                        ret = i;
+                if(d == 1)
+                if (Math.abs(master.e[i].whereIs() - d) < min) {
+                    if(dir == 1){
+                        if(master.eC[i].upwards){
+                            min = Math.abs((int) master.e[i].whereIs() - d);
+                            ret = i;
+                        }
+                    }else{
+                        if(!master.eC[i].upwards);
+                            min = Math.abs((int) master.e[i].whereIs() - d);
+                            ret = i;
                     }
-                }else{
-
                 }
             } catch (RemoteException e1) {
                 e1.printStackTrace();
@@ -33,6 +37,7 @@ public class ActionHandler implements Runnable {
         }
         return ret;
     }
+    //TODO: Shared variables may need mutal exclusion
     @Override
     public void run() {
         String[] params = e.getActionCommand().split(" ");
@@ -43,30 +48,54 @@ public class ActionHandler implements Runnable {
         }else if(params[0].equalsIgnoreCase("p")) {
             master.ebs[Integer.parseInt(params[1])][Integer.parseInt(params[2])] = 1;
         }else if(params[0].equalsIgnoreCase("b")) {
-            if((Integer.parseInt(params[2])) == 1){
-                master.fbs[Integer.parseInt(params[1])].setUp(true);
+            int floor = Integer.parseInt(params[1]);
+            int dir = Integer.parseInt(params[2]);
+            if(dir == 1){
+                master.fbs[floor].setUp(true);
             }else{
-                master.fbs[Integer.parseInt(params[1])].setDown(true);
+                master.fbs[floor].setDown(true);
             }
             /*
             TODO: REWRITE TO SUPPORT DIFFERENT NUMBER OF ELEVATORS
              */
-            if(master.eC[1].dreaming){
-                master.eC[1].wake();
-            }else if(master.eC[2].dreaming){
-                master.eC[2].wake();
-            }else if(master.eC[3].dreaming){
-                master.eC[3].wake();
-            }
-            int toWake = freeze(Integer.parseInt(params[1]));
-            //REMEBER: no downward interrupt but reTake interrupt
-            if(!master.eC[toWake].job && !master.eC[toWake].dreaming){
-                master.eC[toWake].jobs.add(Integer.parseInt(params[2]));
-                master.eC[toWake].reTake = true;
-            }
             sb.append(Arrays.toString(master.fbs));
+            for(int i = 1; i < master.e.length; i++)
+                master.eC[i].wake();
+
+/*
+                int toWake = freeze(floor, dir);
+                //int toWake = 2;
+                //REMEBER: no downward interrupt but reTake interrupt
+                System.out.println(" --toWake = " + toWake);
+                if (!master.eC[toWake].dreaming) {
+                    //if(master.bm[floor].tryLock()){
+                    System.out.println(" --tryLocked = " + toWake);
+                    master.eC[toWake].addJob(floor);
+                    //master.eC[toWake].reTake = true;
+                        /*if(dir == 1) {
+                            while(master.fbs[floor].isUp()){
+                                try {
+                                    Thread.sleep(100);
+                                } catch (InterruptedException e1) {
+                                    e1.printStackTrace();
+                                }
+                            }
+                        }else{
+                            while(master.fbs[floor].isDown()){
+                                try {
+                                    Thread.sleep(100);
+                                } catch (InterruptedException e1) {
+                                    e1.printStackTrace();
+                                }
+                            }
+                        }*/
+                    //master.bm[floor].unlock();
+                //}
+                //}
+
         }
         master.out(sb);
+        System.out.println("OK");
     }
 
 }

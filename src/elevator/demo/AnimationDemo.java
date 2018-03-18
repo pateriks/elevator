@@ -107,7 +107,6 @@ public class AnimationDemo extends Thread implements ActionListener{
       eC = new ElevatorControl[NE+1];
       ebs = new int[NE+1][NF];
       fbs = new FloorButton[NF];
-      fbls = new Lock[NF];
       bm = new ReentrantLock[NF];
       /* Start of Warmup */
 

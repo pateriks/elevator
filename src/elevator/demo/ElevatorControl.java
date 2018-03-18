@@ -51,28 +51,24 @@ public class ElevatorControl extends Thread {
         return work;
     }
 
-    private void take(int level, int dir){
-
-        try {
-            if(master.bm[level].tryLock()) {
-                StringBuilder sb = new StringBuilder();
-                wake();
-                master.out(sb);
-            }
-        } catch (Exception e) {
-
-        }
-
+    public synchronized void addJob(int job){
+        reTake = true;
+        jobs.add(job);
+    }
+    public synchronized void remJob(int job){
+        jobs.remove(job);
     }
 
     private void take(){
-        System.err.println(id + " woke ");
         for(int i = 0; i < master.fbs.length; i++){
-            if(master.fbs[i].isPushed()){
+            if((master.fbs[i].isUp() && upwards) || (master.fbs[i].isDown() && !upwards) || (master.fbs[i].isPushed() && jobs.isEmpty())){
                 try {
-                    if (master.bm[i].tryLock()) {
-                        job = true;
-                        jobs.add(i);
+                    if(((i > elevator.whereIs()) && upwards) || ((i < elevator.whereIs()) && !upwards)) {
+                        if (master.bm[i].tryLock()) {
+                            job = true;
+                            addJob(i);
+                            reTake = false;
+                        }
                     }
                 } catch (Exception e) {
                     StringBuilder sb = new StringBuilder(e.getMessage());
@@ -80,11 +76,17 @@ public class ElevatorControl extends Thread {
                 }
             }
         }
+        for(int i = 0; i < master.ebs[0].length; i++){
+            if(master.ebs[id][i] == 1){
+                addJob(i);
+            }
+        }
     }
 
     private void printNexit(Exception e){
         StringBuilder sb = new StringBuilder(e.getMessage());
         AnimationDemo.nl(sb);
+        System.err.println("EXIT ERROR");
         sb.append("Fatal Error : System Exits");
         master.out(sb);
         System.exit(1);
@@ -93,56 +95,56 @@ public class ElevatorControl extends Thread {
     @Override
     public void run() {
         dream(); //wait for master
-        jobs.add(0); //default job
         while(true) {
             while (job) {
                 try {
                     int todo = 0;
+                    reTake = false;
                     ///get appropriate job
                     try {
-                        if(jobs.size() == 1){
-                            throw new NullPointerException();
-                        }
-                        if(upwards) {
+                        if(jobs.isEmpty()){
+                            System.out.println(id + " message\t" + "no jobs");
+                            upwards = false;
+                        }else if(upwards) {
                             todo = jobs.higher((int) Math.round(elevator.whereIs()));
                         }else{
                             todo = jobs.lower((int) Math.round(elevator.whereIs()));
                         }
                     } catch (NullPointerException e) { //no jobs in current direction change direction (down has always job 0)
-                        if(upwards){
-                            upwards = false;
-                        }else{
-                            upwards = true;
-                        }
+                        upwards = false;
+                        continue;
                     }
+                    System.out.println(id + " message\t" + upwards);
                     //double check direction
                     double where = elevator.whereIs();
                     if (todo > where) {
                         if(upwards) {
                             elevator.up();
                         }else{
-                            System.exit(1);
+                            printNexit(new IllegalArgumentException("Direction Contradiction"));
                         }
                     } else {
                         if(!upwards) {
                             elevator.down();
                         }else{
-                            System.exit(1);
+                            printNexit(new IllegalArgumentException("Direction Contradiction"));
                         }
                     }
                     //move elevator
                     do {
                         where = elevator.whereIs();
                         elevator.setScalePosition((int) Math.round(elevator.whereIs()));
+                        take();
                     } while (Math.abs(where - todo) > 0.001 && !reTake);
 
                     if(reTake){
+                        System.out.println(id + "message\t" + "retake");
                         jobs.add(todo);
                         reTake = false;
                         continue;
                     }
-
                     elevator.stop();
+
                     //open doors
                     elevator.open();
                     try {
@@ -157,25 +159,31 @@ public class ElevatorControl extends Thread {
                     master.fbs[todo].setDown(false);
 
                     //release lock if has lock TODO: should not need to check
-                    if(master.bm[todo].tryLock()) {
+                    try{
                         master.bm[todo].unlock();
+                    }catch (IllegalMonitorStateException e){
+
                     }
 
                     //remove job if job is not job 0
-                    //begin to dream (i.e. set job to false) if job was 0 and there is no more jobs
+                    //set job to false (i.e. begin to dream) if job was 0 and there is no more jobs
                     if(todo != 0) {
-                        jobs.remove(todo);
+                        remJob(todo);
                     }else{
-                        if(jobs.size() == 1)
+                        upwards = true; //at floor zero can just go up
+                        if(jobs.isEmpty())
                             job = false;
                     }
 
                 } catch (RemoteException e) {
                     printNexit(e);
                 }
+                System.out.println(id + " message\t" + jobs.toString());
             }
+            //if(!job)
+            System.out.println(id + "message\t" + "dream: " + !job);
+            upwards = true; //at floor zero can just go up
             if(!job)
-                upwards = true;
                 dream();
             //job = false; //job was true to break elevator from going to default position
             take();
