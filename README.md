@@ -1,2 +1,2 @@
 # elevator
-NO WARRANY
+NO WARRANTY
