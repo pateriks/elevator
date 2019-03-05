@@ -1,3 +1,9 @@
+/**
+  * Author: Patrik Eriksson
+  * Owner: Patrik Eriksson
+  * Created: 2018-03-27
+  */
+
 package elevator.demo;
 
 import elevator.rmi.Elevator;
