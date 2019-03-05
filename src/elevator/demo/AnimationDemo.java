@@ -19,6 +19,12 @@ import elevator.rmi.*;
  */
 
 /**
+ * Modified: 2018-03-27
+ * Modifier: Patrik Eriksson
+ * Changes: Added RMI supported multithread control
+ */
+
+/**
  * The class is a primary class of the AnimationDemo Java application which
  * illustrates a way of controling the Elevators application via Java RMI.
  * <p>The program generates a sequence of control commands submitted to the
