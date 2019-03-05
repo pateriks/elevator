@@ -1,3 +1,10 @@
+/**
+  * Author: Patrik Eriksson
+  * Owner: Patrik Eriksson
+  * Created: 2018-03-27
+  *
+  */
+
 package elevator.demo;
 
 import java.awt.event.ActionEvent;
@@ -12,7 +19,6 @@ public class ActionHandler implements Runnable {
         this.e = e;
         this.master = m;
     }
-    //TODO: Shared variables may need mutal exclusion
     @Override
     public void run() {
         String[] params = e.getActionCommand().split(" ");
@@ -40,7 +46,6 @@ public class ActionHandler implements Runnable {
         }
         //master.out(sb);
     }
-
 }
 /*
 Previous attempts on external control:
